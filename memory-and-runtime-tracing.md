@@ -40,13 +40,17 @@ from memory_check import print, mem_usage
 n = 20000000
 
 generator_argument_result = sum(x ** 2 for x in range(n))
-print("Generator argument", mem_usage())
+print("[Generator]", mem_usage())
+lambda_func_result = sum(map(lambda x: x ** 2, range(n)))
+print("[Lambda]", mem_usage())
 collection_argument_result = sum([x ** 2 for x in range(n)])
-print("List argument", mem_usage())
+print("[Collection]", mem_usage())
 
 ```
-Result
+Every sum funciton was executed separately, results:
 ```text
-MainProcess      [11.34s] Generator argument Memory usage: 7 MB; peak: 7 MB
-MainProcess      [13.85s] List argument Memory usage: 7 MB; peak: 771 MB
+MainProcess      [123.88s] [Generator] Memory usage: 7 MB; peak: 7 MB
+MainProcess      [138.58s] [Lambda] Memory usage: 7 MB; peak: 7 MB
+MainProcess      [144.71s] [Collection] Memory usage: 7 MB; peak: 7726 MB
+
 ```
