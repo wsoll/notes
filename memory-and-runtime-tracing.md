@@ -32,7 +32,7 @@ def mem_usage() -> str:
 
 ```
 
-## List vs Generator
+## Generator, lambda, collection
 
 ```python
 from memory_check import print, mem_usage
