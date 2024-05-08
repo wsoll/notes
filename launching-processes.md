@@ -13,10 +13,10 @@
   * [Fork](#fork-2)
   * [Results and Conclusion](#results-and-conclusion)
 
-<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
-
-
-
+---
+1. <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
+2. <small><i><a href='https://www.youtube.com/watch?v=mASFlnQBUW4'>Test 3 based on Łukasz Langa talk</a></i></small>
+---
 
 # Start Process Method
 <table><tr><th></th>
@@ -501,7 +501,9 @@ MainProcess      [ 0.00s] total_time_s=6.38 total_sum=66669134.0
 1. Less total time for more than 1 worker.
 2. Minor difference between 4 and 8 workers.
 3. Logs points concurrency and not parallelism between workers.
-4. Receiving data time for both methods is relatively high.
-5. Fork methods should have significantly lower time for (4) due to copy-on-write mechanism but it doesn't.
+4. Receiving data time for both methods is relatively high. It seems there's serialization & deserialization is made every worker run.
+5. **Fork methods should have significantly lower time for (4) due to copy-on-write mechanism but it doesn't!**
 
 [Why copy-on-write doesn't work for forking processes.](https://bugs.python.org/issue31558) 
+
+## Solution - Shared Memory
