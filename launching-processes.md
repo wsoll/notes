@@ -1,3 +1,22 @@
+- [Start Process Method](#start-process-method)
+- [Test 1 - Module scope mutable variable](#test-1---module-scope-mutable-variable)
+  * [Fork](#fork)
+  * [Spawn](#spawn)
+- [Test 2 - Workers logger](#test-2---workers-logger)
+  * [Spawn](#spawn-1)
+    + [Code modification 1](#code-modification-1)
+  * [Fork](#fork-1)
+    + [Code modification 1](#code-modification-1-1)
+    + [Code Modification 2](#code-modification-2)
+- [Test 3 - Data Sink](#test-3---data-sink)
+  * [Spawn](#spawn-2)
+  * [Fork](#fork-2)
+  * [Results and Conclusion](#results-and-conclusion)
+
+<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
+
+
+
 
 # Start Process Method
 <table><tr><th></th>
@@ -33,7 +52,7 @@ May introduce security vulnerabilities if sensitive information is not properly 
 Generally less prone to security vulnerabilities due to separate memory space |
 </td></tr></table>
 
-## Example 1 - Module scope mutable variable
+# Test 1 - Module scope mutable variable
 
 ```python
 import asyncio
@@ -94,7 +113,7 @@ if __name__ == "__main__":
 
 ```
 
-### Fork
+## Fork
 ```text
 MainProcess      [ 0.00s] [MODULE SCOPE] List(id: 4395577664) initially: ['Initial value']
 MainProcess      [ 0.00s] Start subprocess with 'fork' method
@@ -110,7 +129,7 @@ MainProcess      [ 2.02s] List(id: 4395577664) finally: ['Initial value', 'Paren
 1. List has the same id for any process.
 2. Every fork process contains 'Parent process update'.
 
-### Spawn
+## Spawn
 ```text
 MainProcess      [ 0.00s] [MODULE SCOPE] List(id: 4362744128) initially: ['Initial value']
 MainProcess      [ 0.00s] Start subprocess with 'spawn' method
@@ -129,7 +148,7 @@ MainProcess      [ 2.11s] List(id: 4362744128) finally: ['Initial value', 'Paren
 2. "[MODULE SCOPE]" log printed three times.
 3. None of spawned process contain 'Parent process update'.
 
-## Example 2 - Workers logger
+# Test 2 - Workers logger
 
 ```python 
 import asyncio
@@ -173,7 +192,7 @@ if __name__ == "__main__":
     asyncio.run(main(start_process_method))
 
 ```
-### Spawn
+## Spawn
 ```text
 MainProcess - __main__ - Print[MODULE SCOPE]: module scoped reached.
 MainProcess - __main__:   Logger(id: 4390984784): start subprocess with 'spawn' method
@@ -182,7 +201,8 @@ SpawnProcess-1 - __mp_main__ - Print[MODULE SCOPE]: module scoped reached.
 ```
 - Missing logs for call_log function call
 
-#### Modification 1 - pass init_log function as ProcessPoolExecutor initializer
+### Code modification 1
+Pass init_log function as ProcessPoolExecutor initializer, result:
 ```text
 MainProcess - __main__ - Print[MODULE SCOPE]: module scoped reached.
 MainProcess - __main__:   Logger(id: 4389406160): start subprocess with 'spawn' method
@@ -194,7 +214,7 @@ SpawnProcess-2 - __mp_main__:   Logger(id: 4328025936): function executed.
 - All logs are visible
 - Every process has separate logger id
 
-### Fork
+## Fork
 ```text
 MainProcess - __main__ - Print[MODULE SCOPE]: module scoped reached.
 MainProcess - __main__:   Logger(id: 4354415696): start subprocess with 'fork' method
@@ -203,7 +223,8 @@ ForkProcess-2 - __main__:   Logger(id: 4354415696): function executed.
 ```
 - Same logger_ids
 
-#### Modification 1 - move call_log to separate.py module, initialize own logger on module scope
+### Code modification 1
+Move call_log to separate.py module, initialize own logger on module scope. Result:
 
 ```text
 MainProcess - __main__ - Print[MODULE SCOPE]: module scoped reached.
@@ -213,7 +234,8 @@ ForkProcess-2 - separate:   Logger(id: 4367811088): function executed.
 ```
 - Different logger ids for main and forked processes
 
-#### Modification 2 - pass init_log function as ProcessPoolExecutor initializer
+### Code Modification 2
+Pass init_log function as ProcessPoolExecutor initializer. Result:
 
 ```text
 MainProcess - __main__ - Print[MODULE SCOPE]: module scoped reached.
@@ -224,3 +246,262 @@ ForkProcess-2 - separate:   Logger(id: 4327030224): function executed.
 ForkProcess-2 - separate:   Logger(id: 4327030224): function executed.
 ```
 - Logs duplication for workers. Contains two handlers - first from parent, second for worker initalizer
+
+# Test 3 - Data Sink
+Let's generate some data:
+```python
+import datetime
+import pickle
+import random
+import sys
+import tracemalloc
+
+import numpy as np
+import pandas as pd
+
+from mem_trace import print, mem_usage
+
+RECORDS_COUNT = 200_000_000
+
+
+def generate_data(length: int) -> np.recarray:
+    print("Generating data to list.", mem_usage())
+    values = [0, 1, np.nan]
+    data = [(datetime.datetime.now(), random.choice(values)) for _ in range(length)]
+    print("Converting list into data frame.", mem_usage())
+    df = pd.DataFrame(data, columns=['timestamp', 'val'])
+    np_array = df.to_records()
+    return np_array
+
+
+if __name__ == "__main__":
+    tracemalloc.start()
+    print(f"Generating {RECORDS_COUNT:_} records of data...")
+    data = generate_data(RECORDS_COUNT)
+    print(f"Generated {sys.getsizeof(data) / (1024 * 1024):.2f} MB of data. Pickling.", mem_usage())
+    with open('data.pickle', 'wb') as f:
+        pickle.dump(data, f)
+    print("Done.")
+```
+
+Let's sum the data:
+```python
+import asyncio
+import multiprocessing
+import pickle
+import time
+import tracemalloc
+from concurrent.futures import ProcessPoolExecutor
+
+import numpy as np
+
+from mem_trace import print, mem_usage
+
+WORKERS = 1
+BATCH_COUNT = WORKERS
+
+
+def load_data():
+    print("Loading data...")
+    with open('pw_asyncio/data.pickle', 'rb') as f:
+        result = pickle.load(f)
+    return result
+
+
+def process(data: np.array) -> int:
+    print("Received data")
+    try:
+        return np.nansum(data.val)
+    finally:
+        print("sending result back.", mem_usage())
+
+
+async def main(data: np.array) -> None:
+    loop = asyncio.get_running_loop()
+    total_sum = 0
+    start = time.time()
+    context = multiprocessing.get_context(sys.argv[1)
+    with ProcessPoolExecutor(max_workers=WORKERS, initializer=tracemalloc.start, mp_context=context) as ppe:
+        print("Scheduling tasks...", mem_usage())
+        batch_size = len(data) // BATCH_COUNT
+        batches = [
+            loop.run_in_executor(ppe, process, data[i:i + batch_size])
+            for i in range(0, len(data), batch_size)
+        ]
+        print("Waiting for results...", mem_usage())
+        done, pending = await asyncio.wait(batches)
+    assert len(pending) == 0
+    for batch in done:
+        total_sum += batch.result()
+    total_time_s = time.time() - start
+    print(mem_usage())
+    print(f"{total_time_s=:.2f} {total_sum=}")
+
+
+if __name__ == "__main__":
+    tracemalloc.start()
+    data = load_data()
+    print(
+        f"Loaded {data.nbytes // 1024 // 1024} MB of data."
+        f"[bold cyan]{len(data):_}[/] records"
+
+    )
+    print(f"Will use {WORKERS} workers for {BATCH_COUNT} batches.")
+    asyncio.run(main(data))
+
+```
+
+Let's run the code for both methods increasing number of workers.
+
+## Spawn
+WORKERS = 1
+```text
+MainProcess      [ 0.00s] Loading data...
+MainProcess      [ 1.62s] Loaded 4577 MB of data.200_000_000 records
+MainProcess      [ 0.00s] Will use 1 workers for 1 batches.
+MainProcess      [ 0.01s] Scheduling tasks... Memory usage: 4577 MB; peak: 4577 MB
+MainProcess      [ 0.00s] Waiting for results... Memory usage: 4577 MB; peak: 4577 MB
+  SpawnProcess-1 [10.65s] Received data
+  SpawnProcess-1 [ 1.63s] sending result back. Memory usage: 4577 MB; peak: 9155 MB
+MainProcess      [12.67s] Memory usage: 4577 MB; peak: 14305 MB
+MainProcess      [ 0.00s] total_time_s=12.69 total_sum=66669134.0
+```
+
+WORKERS = 4
+```text
+MainProcess      [ 0.00s] Loading data...
+MainProcess      [ 1.54s] Loaded 4577 MB of data.200_000_000 records
+MainProcess      [ 0.00s] Will use 4 workers for 4 batches.
+MainProcess      [ 0.01s] Scheduling tasks... Memory usage: 4577 MB; peak: 4577 MB
+MainProcess      [ 0.71s] Waiting for results... Memory usage: 5865 MB; peak: 7009 MB
+  SpawnProcess-1 [ 2.20s] Received data
+  SpawnProcess-1 [ 0.45s] sending result back. Memory usage: 1144 MB; peak: 2288 MB
+  SpawnProcess-3 [ 3.37s] Received data
+  SpawnProcess-3 [ 0.45s] sending result back. Memory usage: 1144 MB; peak: 2288 MB
+  SpawnProcess-2 [ 5.00s] Received data
+  SpawnProcess-2 [ 0.48s] sending result back. Memory usage: 1144 MB; peak: 2288 MB
+  SpawnProcess-4 [ 6.13s] Received data
+  SpawnProcess-4 [ 0.34s] sending result back. Memory usage: 1144 MB; peak: 2288 MB
+MainProcess      [ 6.64s] Memory usage: 4577 MB; peak: 7009 MB
+MainProcess      [ 0.00s] total_time_s=7.36 total_sum=66669134.0
+```
+
+WORKERS = 8
+```
+MainProcess      [ 0.00s] Loading data...
+MainProcess      [ 1.01s] Loaded 4577 MB of data.200_000_000 records
+MainProcess      [ 0.00s] Will use 8 workers for 8 batches.
+MainProcess      [ 0.01s] Scheduling tasks... Memory usage: 4577 MB; peak: 4577 MB
+MainProcess      [ 0.28s] Waiting for results... Memory usage: 5221 MB; peak: 5793 MB
+  SpawnProcess-1 [ 1.50s] Received data
+  SpawnProcess-1 [ 0.19s] sending result back. Memory usage: 572 MB; peak: 1144 MB
+  SpawnProcess-2 [ 1.58s] Received data
+  SpawnProcess-2 [ 0.18s] sending result back. Memory usage: 572 MB; peak: 1144 MB
+  SpawnProcess-6 [ 2.20s] Received data
+  SpawnProcess-6 [ 0.19s] sending result back. Memory usage: 572 MB; peak: 1144 MB
+  SpawnProcess-5 [ 2.86s] Received data
+  SpawnProcess-5 [ 0.23s] sending result back. Memory usage: 572 MB; peak: 1144 MB
+  SpawnProcess-3 [ 3.64s] Received data
+  SpawnProcess-3 [ 0.24s] sending result back. Memory usage: 572 MB; peak: 1144 MB
+  SpawnProcess-7 [ 4.39s] Received data
+  SpawnProcess-7 [ 0.23s] sending result back. Memory usage: 572 MB; peak: 1144 MB
+  SpawnProcess-4 [ 5.20s] Received data
+  SpawnProcess-4 [ 0.22s] sending result back. Memory usage: 572 MB; peak: 1144 MB
+  SpawnProcess-8 [ 5.93s] Received data
+  SpawnProcess-8 [ 0.15s] sending result back. Memory usage: 572 MB; peak: 1144 MB
+MainProcess      [ 6.82s] Memory usage: 4577 MB; peak: 5793 MB
+MainProcess      [ 0.00s] total_time_s=7.11 total_sum=66669134.0
+```
+
+## Fork
+WORKERS = 1
+```text
+MainProcess      [ 0.00s] Loading data...
+MainProcess      [ 0.96s] Loaded 4577 MB of data.200_000_000 records
+MainProcess      [ 0.00s] Will use 1 workers for 1 batches.
+MainProcess      [ 0.00s] Scheduling tasks... Memory usage: 4577 MB; peak: 4577 MB
+MainProcess      [ 0.01s] Waiting for results... Memory usage: 4577 MB; peak: 4577 MB
+   ForkProcess-1 [10.22s] Received data
+   ForkProcess-1 [ 1.64s] sending result back. Memory usage: 9155 MB; peak: 13733 MB
+MainProcess      [12.04s] Memory usage: 4577 MB; peak: 14305 MB
+MainProcess      [ 0.00s] total_time_s=12.05 total_sum=66669134.0
+```
+
+WORKERS = 4
+```
+MainProcess      [ 0.00s] Loading data...
+MainProcess      [ 1.53s] Loaded 4577 MB of data.200_000_000 records
+MainProcess      [ 0.00s] Will use 4 workers for 4 batches.
+MainProcess      [ 0.00s] Scheduling tasks... Memory usage: 4577 MB; peak: 4577 MB
+MainProcess      [ 0.01s] Waiting for results... Memory usage: 4577 MB; peak: 4577 MB
+   ForkProcess-1 [ 2.15s] Received data
+   ForkProcess-1 [ 0.50s] sending result back. Memory usage: 5722 MB; peak: 6866 MB
+   ForkProcess-2 [ 3.40s] Received data
+   ForkProcess-2 [ 0.41s] sending result back. Memory usage: 5722 MB; peak: 6866 MB
+   ForkProcess-3 [ 4.99s] Received data
+   ForkProcess-3 [ 0.44s] sending result back. Memory usage: 5722 MB; peak: 6866 MB
+   ForkProcess-4 [ 6.62s] Received data
+   ForkProcess-4 [ 0.32s] sending result back. Memory usage: 5722 MB; peak: 6866 MB
+MainProcess      [ 6.96s] Memory usage: 4577 MB; peak: 7009 MB
+MainProcess      [ 0.00s] total_time_s=6.97 total_sum=66669134.0
+```
+
+WORKERS = 8
+```
+MainProcess      [ 0.00s] Loading data...
+MainProcess      [ 0.95s] Loaded 4577 MB of data.200_000_000 records
+MainProcess      [ 0.00s] Will use 8 workers for 8 batches.
+MainProcess      [ 0.00s] Scheduling tasks... Memory usage: 4577 MB; peak: 4577 MB
+MainProcess      [ 0.02s] Waiting for results... Memory usage: 4577 MB; peak: 4577 MB
+   ForkProcess-1 [ 0.98s] Received data
+   ForkProcess-1 [ 0.19s] sending result back. Memory usage: 5150 MB; peak: 5722 MB
+   ForkProcess-2 [ 1.62s] Received data
+   ForkProcess-2 [ 0.18s] sending result back. Memory usage: 5150 MB; peak: 5722 MB
+   ForkProcess-3 [ 2.30s] Received data
+   ForkProcess-3 [ 0.18s] sending result back. Memory usage: 5150 MB; peak: 5722 MB
+   ForkProcess-4 [ 3.06s] Received data
+   ForkProcess-4 [ 0.20s] sending result back. Memory usage: 5150 MB; peak: 5722 MB
+   ForkProcess-5 [ 3.83s] Received data
+   ForkProcess-5 [ 0.22s] sending result back. Memory usage: 5150 MB; peak: 5722 MB
+   ForkProcess-6 [ 4.60s] Received data
+   ForkProcess-6 [ 0.20s] sending result back. Memory usage: 5150 MB; peak: 5722 MB
+   ForkProcess-7 [ 5.44s] Received data
+   ForkProcess-7 [ 0.21s] sending result back. Memory usage: 5150 MB; peak: 5722 MB
+   ForkProcess-8 [ 6.21s] Received data
+   ForkProcess-8 [ 0.14s] sending result back. Memory usage: 5150 MB; peak: 5722 MB
+MainProcess      [ 6.36s] Memory usage: 4577 MB; peak: 5793 MB
+MainProcess      [ 0.00s] total_time_s=6.38 total_sum=66669134.0
+```
+
+
+## Results and Conclusion
+<table>
+    <tr>
+        <th></th>
+        <th>Spawn</th>
+        <th>Fork</th>
+    </tr>
+    <tr>
+        <th>1 Worker</th>
+        <td>12.69s</td>
+        <td>12.05s</td>
+    </tr>
+    <tr>
+        <th>4 Workers</th>
+        <td>7.36s</td>
+        <td>6.97s</td>
+    </tr>
+    <tr>
+        <th>8 Workers</th>
+        <td>7.11s</td>
+        <td>6.38s</td>
+    </tr>
+</table>
+
+1. Less total time for more than 1 worker.
+2. Minor difference between 4 and 8 workers.
+3. Logs points concurrency and not parallelism between workers.
+4. Receiving data time for both methods is relatively high.
+5. Fork methods should have significantly lower time for (4) due to copy-on-write mechanism but it doesn't.
+
+[Why copy-on-write doesn't work for forking processes.](https://bugs.python.org/issue31558) 
