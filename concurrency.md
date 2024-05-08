@@ -33,7 +33,7 @@ def generate_data(length: int) -> np.recarray:
     values = [0, 1, np.nan]
     data = [(datetime.datetime.now(), random.choice(values)) for _ in range(length)]
     print("Converting list into data frame.", mem_usage())
-    df = pd.DataFrame(data)
+    df = pd.DataFrame(data, columns=['timestamp', 'val'])
     np_array = df.to_records()
     return np_array
 
