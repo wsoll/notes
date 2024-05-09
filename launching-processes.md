@@ -1,3 +1,10 @@
+1. [Lazy loading and collection generation peak](https://github.com/wsoll/articles/blob/main/iterables-memory-tracing.md)
+2. [Behaviour of processes launched with Python](https://github.com/wsoll/articles/blob/main/launching-processes.md)
+3. [Behaviour of processes launched with Python - part 2](https://github.com/wsoll/articles/blob/main/launching-processes-2.md)
+4. [Diamond inheritance problem](https://github.com/wsoll/articles/blob/main/diamond-inheritance-problem.md)
+
+---
+Table of Content:
 - [Start Process Method](#start-process-method)
 - [Test 1 - Module scope mutable variable](#test-1---module-scope-mutable-variable)
   * [Fork](#fork)
@@ -14,10 +21,10 @@
   * [Results and Conclusion](#results-and-conclusion)
   * [Solution - Shared Memory](#solution---shared-memory)
 
+Notes:
+- <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
+- <small><i><a href='https://www.youtube.com/watch?v=mASFlnQBUW4'>Test 3 based on Łukasz Langa talk</a></i></small>
 
----
-1. <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
-2. <small><i><a href='https://www.youtube.com/watch?v=mASFlnQBUW4'>Test 3 based on Łukasz Langa talk</a></i></small>
 ---
 
 # Start Process Method
