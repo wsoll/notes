@@ -14,11 +14,29 @@ from asyncio import Future
 from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures.process import BrokenProcessPool
 from typing import Literal, Callable
-from mem_trace import print
+
+from rich.console import Console
 
 WORKERS = 8
 WORKER_EXECUTION_TIME_SEC = 5
 
+console = Console(width=500)
+print_ts = time.time()
+
+
+def print(*args, **kwargs) -> None:
+    global print_ts
+    now = time.time()
+    proc = multiprocessing.current_process().name
+    if proc == "MainProcess":
+        proc = f"[bold]{proc:<16}[/bold]"
+    else:
+        proc = f"{proc:>16}"
+    console.print(
+        f"{proc} [[green bold]{now - print_ts:>5.2f}s[/]]",
+        *args,
+        **kwargs
+    )
 
 def process():
     print("Hello process! Executing...")
@@ -57,7 +75,7 @@ class ProcessPool:
         try:
             return await loop.run_in_executor(self.executor, process_function)
         except BrokenProcessPool as e:
-            print(e)
+            print(f"{type(e)}: {e}")
             raise e
 
 
@@ -77,12 +95,11 @@ async def main():
         except asyncio.TimeoutError:
             print("STOP IT NOW!")
             task.cancel()
-        except BrokenProcessPool as e:
-            print(e)
 
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 ```
 
