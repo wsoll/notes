@@ -8,6 +8,7 @@
 ```python
 import asyncio
 import multiprocessing
+import sys
 import time
 from asyncio import Future
 from concurrent.futures import ProcessPoolExecutor
@@ -61,7 +62,10 @@ class ProcessPool:
 
 
 async def main():
-    process_pool = ProcessPool(WORKERS, "spawn")
+    start_process_method = sys.argv[1]
+    if start_process_method not in ("spawn", "fork"):
+        raise RuntimeError("available arguments are fork and spawn.")
+    process_pool = ProcessPool(WORKERS, start_process_method)
 
     workers_tasks = [asyncio.create_task(process_pool.run_worker(process)) for _ in range(WORKERS - 1)]
     workers_tasks.append(asyncio.create_task(process_pool.run_worker(evil_dream)))
@@ -70,6 +74,7 @@ async def main():
         try:
             await asyncio.wait_for(task, timeout=6)
         except asyncio.TimeoutError:
+            print("STOP IT NOW!")
             task.cancel()
         except BrokenProcessPool as e:
             print(e)
