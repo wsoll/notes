@@ -54,3 +54,28 @@ MainProcess      [138.58s] [Lambda] Memory usage: 7 MB; peak: 7 MB
 MainProcess      [144.71s] [Collection] Memory usage: 7 MB; peak: 7726 MB
 
 ```
+
+## Mutable as a default argument
+```python
+import tracemalloc
+
+from mem_trace import print, mem_usage
+
+
+def foo(input_values: list[int], bar: list = []):
+    bar.extend(input_values)
+    print(f"bar-list elements: {len(bar)}", mem_usage())
+
+
+if __name__ == "__main__":
+    tracemalloc.start()
+    foo([x for x in range(100000)])
+    foo([x for x in range(100000, 200000)])
+    foo([x for x in range(200000, 300000)])
+```
+
+```text
+MainProcess      [ 0.01s] bar-list elements: 100000 Memory usage: 4 MB; peak: 4 MB
+MainProcess      [ 0.02s] bar-list elements: 200000 Memory usage: 8 MB; peak: 8 MB
+MainProcess      [ 0.02s] bar-list elements: 300000 Memory usage: 12 MB; peak: 12 MB
+```
