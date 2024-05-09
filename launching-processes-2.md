@@ -11,24 +11,35 @@ import multiprocessing
 import time
 from asyncio import Future
 from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures.process import BrokenProcessPool
 from typing import Literal, Callable
 from mem_trace import print
 
 WORKERS = 8
-WORKER_EXECUTION_TIME_SEC = 60
+WORKER_EXECUTION_TIME_SEC = 5
 
 
 def process():
-    time.sleep(WORKERS)
-    print("Hello process!")
+    print("Hello process! Executing...")
+    time.sleep(WORKER_EXECUTION_TIME_SEC)
+    print("Done.")
     return 0
 
 
-def evil_process():
+def evil_dream():
     try:
-        evil_process()
+        print(
+            "I welcome you, Python, my old friend. But to this place where destiny is made, why have you come "
+            "unprepared?"
+        )
+        evil_dream()
     except:
-        evil_process()
+        print(
+            "What a fool you are. I'm a god. How can you kill a god? What a grand and intoxicating innocence. How "
+            "could you be so naive? There is no escape. No Recall or Intervention can work in this place. Come. Lay "
+            "down your weapons. It is not too late for my mercy."
+        )
+        evil_dream()
 
 
 class ProcessPool:
@@ -42,21 +53,30 @@ class ProcessPool:
 
     async def run_worker(self, process_function: Callable) -> Future:
         loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(self.executor, process_function)
+        try:
+            return await loop.run_in_executor(self.executor, process_function)
+        except BrokenProcessPool as e:
+            print(e)
+            raise e
 
 
 async def main():
     process_pool = ProcessPool(WORKERS, "spawn")
-    worker_tasks = [asyncio.create_task(process_pool.run_worker(process)) for _ in range(WORKERS - 1)]
-    worker_tasks.append(asyncio.create_task(process_pool.run_worker(evil_process)))
 
-    try:
-        await asyncio.gather(*worker_tasks)
-    except Exception as e:
-        print(f"{type(e)}: {e}")
+    workers_tasks = [asyncio.create_task(process_pool.run_worker(process)) for _ in range(WORKERS - 1)]
+    workers_tasks.append(asyncio.create_task(process_pool.run_worker(evil_dream)))
+
+    for task in workers_tasks:
+        try:
+            await asyncio.wait_for(task, timeout=6)
+        except asyncio.TimeoutError:
+            task.cancel()
+        except BrokenProcessPool as e:
+            print(e)
 
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 ```
