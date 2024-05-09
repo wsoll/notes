@@ -12,6 +12,8 @@
   * [Spawn](#spawn-2)
   * [Fork](#fork-2)
   * [Results and Conclusion](#results-and-conclusion)
+  * [Solution - Shared Memory](#solution---shared-memory)
+
 
 ---
 1. <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
@@ -507,3 +509,167 @@ MainProcess      [ 0.00s] total_time_s=6.38 total_sum=66669134.0
 [Why copy-on-write doesn't work for forking processes.](https://bugs.python.org/issue31558) 
 
 ## Solution - Shared Memory
+
+Take a look at changes made on \_\_main\_\_ and process function:
+
+```python
+import asyncio
+import multiprocessing
+import pickle
+import time
+import tracemalloc
+from concurrent.futures import ProcessPoolExecutor
+from multiprocessing.managers import SharedMemoryManager
+from multiprocessing.shared_memory import SharedMemory
+
+import numpy as np
+
+from mem_trace import print, mem_usage
+
+WORKERS = 8
+BATCH_COUNT = WORKERS
+
+
+def load_data():
+    print("Loading data...")
+    with open('pw_asyncio/data.pickle', 'rb') as f:
+        result = pickle.load(f)
+    return result
+
+
+def process(
+        shm_name: str,
+        shape: tuple[int, ...],
+        dtype: np.dtype,
+        offset: int,
+        batch_size: int
+    ) -> int:
+    print("Received data")
+    shm = SharedMemory(shm_name)
+    data = np.recarray(shape=shape, dtype=dtype, buf=shm.buf)
+    print("Received data", mem_usage())
+    try:
+        return np.nansum(data[offset:offset + batch_size].val)
+    finally:
+        print("Sending result back.", mem_usage())
+
+
+async def main(data: np.array, shm_name: str) -> None:
+    loop = asyncio.get_running_loop()
+    total_sum = 0
+    start = time.time()
+    context = multiprocessing.get_context(sys.argv[1)
+    with ProcessPoolExecutor(max_workers=WORKERS, initializer=tracemalloc.start, mp_context=context) as ppe:
+        print("Scheduling tasks...", mem_usage())
+        batch_size = len(data) // BATCH_COUNT
+        batches = [
+            loop.run_in_executor(ppe, process, shm_name, data.shape, data.dtype, i, batch_size)
+            for i in range(0, len(data), batch_size)
+        ]
+        print("Waiting for results...", mem_usage())
+        done, pending = await asyncio.wait(batches)
+    assert len(pending) == 0
+    for batch in done:
+        total_sum += batch.result()
+    total_time_s = time.time() - start
+    print(mem_usage())
+    print(f"{total_time_s=:.2f} {total_sum=}")
+
+
+if __name__ == "__main__":
+    tracemalloc.start()
+    data = load_data()
+    print(
+        f"Loaded {data.nbytes // 1024 // 1024} MB of data."
+        f"[bold cyan]{len(data):_}[/] records"
+
+    )
+    print(f"Will use {WORKERS} workers for {BATCH_COUNT} batches.")
+    with SharedMemoryManager() as smm:
+        shm = smm.SharedMemory(data.nbytes)
+        shm_data = np.recarray(shape=data.shape, dtype=data.dtype, buf=shm.buf)
+        print("Coping data to shared memory...", mem_usage())
+        np.copyto(shm_data, data)
+        print("Copied.", mem_usage())
+        del data
+        asyncio.run(main(shm_data, shm.name))
+
+```
+
+```text
+MainProcess      [ 0.00s] Loading data...
+MainProcess      [ 1.57s] Loaded 4577 MB of data.200_000_000 records
+MainProcess      [ 0.00s] Will use 8 workers for 8 batches.
+MainProcess      [ 0.22s] Coping data to shared memory... Memory usage: 4577 MB; peak: 4577 MB
+MainProcess      [ 3.37s] Copied. Memory usage: 4577 MB; peak: 4577 MB
+MainProcess      [ 0.10s] Scheduling tasks... Memory usage: 0 MB; peak: 4577 MB
+MainProcess      [ 0.01s] Waiting for results... Memory usage: 0 MB; peak: 4577 MB
+   ForkProcess-5 [ 0.01s] Received data
+   ForkProcess-4 [ 0.01s] Received data
+   ForkProcess-2 [ 0.01s] Received data
+   ForkProcess-7 [ 0.01s] Received data
+   ForkProcess-3 [ 0.01s] Received data
+   ForkProcess-4 [ 0.00s] Received data Memory usage: 0 MB; peak: 4577 MB
+   ForkProcess-7 [ 0.00s] Received data Memory usage: 0 MB; peak: 4577 MB
+   ForkProcess-6 [ 0.01s] Received data
+   ForkProcess-3 [ 0.00s] Received data Memory usage: 0 MB; peak: 4577 MB
+   ForkProcess-2 [ 0.00s] Received data Memory usage: 0 MB; peak: 4577 MB
+   ForkProcess-6 [ 0.00s] Received data Memory usage: 0 MB; peak: 4577 MB
+   ForkProcess-5 [ 0.00s] Received data Memory usage: 0 MB; peak: 4577 MB
+   ForkProcess-9 [ 0.01s] Received data
+   ForkProcess-8 [ 0.01s] Received data
+   ForkProcess-8 [ 0.01s] Received data Memory usage: 0 MB; peak: 4577 MB
+   ForkProcess-9 [ 0.01s] Received data Memory usage: 0 MB; peak: 4577 MB
+   ForkProcess-9 [ 1.18s] Sending result back. Memory usage: 0 MB; peak: 4577 MB
+   ForkProcess-8 [ 1.54s] Sending result back. Memory usage: 0 MB; peak: 4577 MB
+   ForkProcess-4 [ 1.58s] Sending result back. Memory usage: 0 MB; peak: 4577 MB
+   ForkProcess-2 [ 1.60s] Sending result back. Memory usage: 0 MB; peak: 4577 MB
+   ForkProcess-3 [ 1.61s] Sending result back. Memory usage: 0 MB; peak: 4577 MB
+   ForkProcess-7 [ 1.61s] Sending result back. Memory usage: 0 MB; peak: 4577 MB
+   ForkProcess-5 [ 1.61s] Sending result back. Memory usage: 0 MB; peak: 4577 MB
+   ForkProcess-6 [ 1.62s] Sending result back. Memory usage: 0 MB; peak: 4577 MB
+MainProcess      [ 1.63s] Memory usage: 0 MB; peak: 4577 MB
+MainProcess      [ 0.00s] total_time_s=0.98 total_sum=66669134.0
+```
+
+```text
+MainProcess      [ 0.00s] Loading data...
+MainProcess      [ 1.65s] Loaded 4577 MB of data.200_000_000 records
+MainProcess      [ 0.00s] Will use 8 workers for 8 batches.
+MainProcess      [ 0.29s] Coping data to shared memory... Memory usage: 4577 MB; peak: 4577 MB
+MainProcess      [ 3.22s] Copied. Memory usage: 4577 MB; peak: 4577 MB
+MainProcess      [ 0.10s] Scheduling tasks... Memory usage: 0 MB; peak: 4577 MB
+MainProcess      [ 0.02s] Waiting for results... Memory usage: 0 MB; peak: 4577 MB
+  SpawnProcess-5 [ 0.02s] Received data
+  SpawnProcess-5 [ 0.04s] Received data Memory usage: 0 MB; peak: 0 MB
+  SpawnProcess-3 [ 0.04s] Received data
+  SpawnProcess-3 [ 0.05s] Received data Memory usage: 0 MB; peak: 0 MB
+  SpawnProcess-9 [ 0.01s] Received data
+  SpawnProcess-8 [ 0.00s] Received data
+  SpawnProcess-8 [ 0.05s] Received data Memory usage: 0 MB; peak: 0 MB
+  SpawnProcess-9 [ 0.05s] Received data Memory usage: 0 MB; peak: 0 MB
+  SpawnProcess-7 [ 0.00s] Received data
+  SpawnProcess-2 [ 0.00s] Received data
+  SpawnProcess-7 [ 0.03s] Received data Memory usage: 0 MB; peak: 0 MB
+  SpawnProcess-2 [ 0.03s] Received data Memory usage: 0 MB; peak: 0 MB
+  SpawnProcess-6 [ 0.00s] Received data
+  SpawnProcess-6 [ 0.07s] Received data Memory usage: 0 MB; peak: 0 MB
+  SpawnProcess-4 [ 0.00s] Received data
+  SpawnProcess-4 [ 0.07s] Received data Memory usage: 0 MB; peak: 0 MB
+  SpawnProcess-5 [ 1.02s] Sending result back. Memory usage: 0 MB; peak: 214 MB
+  SpawnProcess-3 [ 1.00s] Sending result back. Memory usage: 0 MB; peak: 214 MB
+  SpawnProcess-8 [ 1.07s] Sending result back. Memory usage: 0 MB; peak: 214 MB
+  SpawnProcess-9 [ 1.14s] Sending result back. Memory usage: 0 MB; peak: 214 MB
+  SpawnProcess-7 [ 1.15s] Sending result back. Memory usage: 0 MB; peak: 214 MB
+  SpawnProcess-4 [ 1.10s] Sending result back. Memory usage: 0 MB; peak: 214 MB
+  SpawnProcess-6 [ 1.15s] Sending result back. Memory usage: 0 MB; peak: 214 MB
+  SpawnProcess-2 [ 1.19s] Sending result back. Memory usage: 0 MB; peak: 214 MB
+MainProcess      [ 1.87s] Memory usage: 0 MB; peak: 4577 MB
+MainProcess      [ 0.00s] total_time_s=1.37 total_sum=66669134.0
+```
+
+- **The total time is around 1s**
+- **You can see the actual parallelism by "Sending result back." order.**
+- [fork] Peak for every fork process is the same as for main process due to main memory space duplication.
+- [spawn] Peak for every spawn process is lower due to own, sperated memory space
+- Coping data to shared memory is relatively high, however once done it is present for entire app runtime..
