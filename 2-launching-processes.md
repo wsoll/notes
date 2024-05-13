@@ -117,6 +117,7 @@ if __name__ == "__main__":
 ```
 
 ## Fork
+
 ```commandline
 MainProcess      [ 0.00s] [MODULE SCOPE] List(id: 4395577664) initially: ['Initial value']
 MainProcess      [ 0.00s] Start subprocess with 'fork' method
@@ -133,6 +134,7 @@ MainProcess      [ 2.02s] List(id: 4395577664) finally: ['Initial value', 'Paren
 2. Every fork process contains 'Parent process update'.
 
 ## Spawn
+
 ```commandline
 MainProcess      [ 0.00s] [MODULE SCOPE] List(id: 4362744128) initially: ['Initial value']
 MainProcess      [ 0.00s] Start subprocess with 'spawn' method
@@ -196,6 +198,7 @@ if __name__ == "__main__":
 
 ```
 ## Spawn
+
 ```commandline
 MainProcess - __main__ - Print[MODULE SCOPE]: module scoped reached.
 MainProcess - __main__:   Logger(id: 4390984784): start subprocess with 'spawn' method
