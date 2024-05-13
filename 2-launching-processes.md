@@ -23,7 +23,7 @@ Notes:
 
 # Start Process Method
 <table><tr><th></th>
-	<th scope="col"al>Fork</th>
+	<th scope="col">Fork</th>
 	<th scope="col">Spawn</th>
 </tr><tr><th scope="row">Memory Overhead</th><td>
 Could be higher as it duplicates entire memory space of parent process for child process
