@@ -9,6 +9,7 @@
 - [Crash tests](#crash-tests)
   * [Recursion](#recursion)
   * [Out of memory](#out-of-memory)
+  * [Exception handling & Recovery](#exception-handling---recovery)
 
 <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 
@@ -238,7 +239,7 @@ MainProcess      [41.26s] <class 'concurrent.futures.process.BrokenProcessPool'>
 MainProcess      [41.26s] <class 'concurrent.futures.process.BrokenProcessPool'>: A process in the process pool was terminated abruptly while the future was running or pending.
 ```
 
-## Exception handling & Recovery
+## Exception handling and Recovery
 Replace asyncio.gather() with TaskGroup async context manager:
 
 ```python
