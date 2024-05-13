@@ -23,13 +23,12 @@ import sys
 import time
 from asyncio import Future
 from concurrent.futures import ProcessPoolExecutor
-from concurrent.futures.process import BrokenProcessPool
 from typing import Literal, Callable
 
 from rich.console import Console
 
 WORKERS = 8
-WORKER_EXECUTION_TIME_SEC = 5
+WORKER_EXECUTION_TIME_SEC = 60
 
 console = Console(width=500)
 print_ts = time.time()
@@ -49,7 +48,8 @@ def print(*args, **kwargs) -> None:
         **kwargs
     )
 
-def process():
+
+def valid_worker_func():
     print("Hello process! Executing...")
     time.sleep(WORKER_EXECUTION_TIME_SEC)
     print("Done.")
@@ -69,7 +69,7 @@ class ProcessPool:
         loop = asyncio.get_running_loop()
         try:
             return await loop.run_in_executor(self.executor, process_function)
-        except BrokenProcessPool as e:
+        except Exception as e:
             print(f"{type(e)}: {e}")
             raise e
 
@@ -81,15 +81,17 @@ async def main():
         raise RuntimeError("available arguments are fork and spawn.")
     process_pool = ProcessPool(WORKERS, start_process_method)
 
-    workers_tasks = [asyncio.create_task(process_pool.run_worker(process)) for _ in range(WORKERS - 1)]
-    workers_tasks.append(asyncio.create_task(process_pool.run_worker(evil_dream)))
+    workers_tasks = [asyncio.create_task(process_pool.run_worker(valid_worker_func)) for _ in range(WORKERS - 1)]
 
-    for task in workers_tasks:
-        try:
-            await asyncio.wait_for(task, timeout=WORKER_EXECUTION_TIME_SEC + 1)
-        except asyncio.TimeoutError:
-            print("STOP IT NOW!")
-            task.cancel()
+
+    await asyncio.gather(*workers_tasks)
+    print("All tasks finished.")
+
+    for worker_task in workers_tasks:
+        if worker_task.cancelled() or worker_task.exception():
+            print(f"{worker_task.get_name()} cancelled or failed task.")
+            continue
+        print(f"{worker_task.get_name()}, result: {worker_task.result()}")
 
 
 if __name__ == "__main__":
@@ -104,20 +106,20 @@ Let's try to crash process pool differeny ways.
 ## Recursion
 ```python
 ...
-def evil_dream():
+def evil_recursion_worker_func():
     try:
         print(
             "I welcome you, Python, my old friend. But to this place where destiny is made, why have you come "
             "unprepared?"
         )
-        evil_dream()
+        evil_recursion_worker_func()
     except:
         print(
             "What a fool you are. I'm a god. How can you kill a god? What a grand and intoxicating innocence. How "
             "could you be so naive? There is no escape. No Recall or Intervention can work in this place. Come. Lay "
             "down your weapons. It is not too late for my mercy."
         )
-        evil_dream()
+        evil_recursion_worker_func()
 
 ...
 
@@ -179,21 +181,17 @@ MainProcess      [ 0.00s] Start new process method: spawn.
   SpawnProcess-8 [ 0.20s] I welcome you, Python, my old friend. But to this place where destiny is made, why have you come unprepared?
   SpawnProcess-8 [ 0.20s] What a fool you are. I'm a god. How can you kill a god? What a grand and intoxicating innocence. How could you be so naive? There is no escape. No Recall or Intervention can work in this place. Come. Lay down your weapons. It is not too late for my mercy.
   ...
-  SpawnProcess-1 [ 5.00s] Done.
-  SpawnProcess-5 [ 5.00s] Done.
-  SpawnProcess-7 [ 5.01s] Done.
-  SpawnProcess-6 [ 5.00s] Done.
-  SpawnProcess-2 [ 5.00s] Done.
-  SpawnProcess-8 [ 5.00s] What a fool you are. I'm a god. How can you kill a god? What a grand and intoxicating innocence. How could you be so naive? There is no escape. No Recall or Intervention can work in this place. Come. Lay down your weapons. It is not too late for my mercy.
-  SpawnProcess-8 [ 5.00s] I welcome you, Python, my old friend. But to this place where destiny is made, why have you come unprepared?
-  SpawnProcess-3 [ 5.01s] Done.
-  SpawnProcess-4 [ 5.00s] Done.
-  ...
-  SpawnProcess-8 [10.99s] What a fool you are. I'm a god. How can you kill a god? What a grand and intoxicating innocence. How could you be so naive? There is no escape. No Recall or Intervention can work in this place. Come. Lay down your weapons. It is not too late for my mercy.
-  SpawnProcess-8 [10.99s] I welcome you, Python, my old friend. But to this place where destiny is made, why have you come unprepared?
-MainProcess      [11.20s] STOP IT NOW!
-  SpawnProcess-8 [11.00s] What a fool you are. I'm a god. How can you kill a god? What a grand and intoxicating innocence. How could you be so naive? There is no escape. No Recall or Intervention can work in this place. Come. Lay down your weapons. It is not too late for my mercy.
-  SpawnProcess-8 [11.01s] What a fool you are. I'm a god. How can you kill a god? What a grand and intoxicating innocence. How could you be so naive? There is no escape. No Recall or Intervention can work in this place. Come. Lay down your weapons. It is not too late for my mercy.
+  SpawnProcess-1 [60.01s] Done.
+  SpawnProcess-2 [60.00s] Done.
+  SpawnProcess-3 [60.01s] Done.
+  SpawnProcess-7 [60.00s] Done.
+  SpawnProcess-5 [60.01s] Done.
+  SpawnProcess-8 [60.00s] Done.
+  SpawnProcess-4 [60.01s] Done.
+  SpawnProcess-8 [60.99s] What a fool you are. I'm a god. How can you kill a god? What a grand and intoxicating innocence. How could you be so naive? There is no escape. No Recall or Intervention can work in this place. Come. Lay down your weapons. It is not too late for my mercy.
+  SpawnProcess-8 [60.99s] I welcome you, Python, my old friend. But to this place where destiny is made, why have you come unprepared?
+  SpawnProcess-8 [60.00s] What a fool you are. I'm a god. How can you kill a god? What a grand and intoxicating innocence. How could you be so naive? There is no escape. No Recall or Intervention can work in this place. Come. Lay down your weapons. It is not too late for my mercy.
+  SpawnProcess-8 [60.01s] What a fool you are. I'm a god. How can you kill a god? What a grand and intoxicating innocence. How could you be so naive? There is no escape. No Recall or Intervention can work in this place. Come. Lay down your weapons. It is not too late for my mercy.
   ...
 ```
 
@@ -203,7 +201,7 @@ MainProcess      [11.20s] STOP IT NOW!
 WORKER_EXECUTION_TIME_SEC = 60
 ...
 
-def evil_dream():
+def oom_worker_func():
     print("Hello, Devil!")
     result = [x for x in range(100000000000000)]
     print("Bye Devil!")
@@ -213,7 +211,7 @@ def evil_dream():
 
 async def main():
     ...
-    workers_tasks.append(asyncio.create_task(process_pool.run_worker(evil_dream)))
+    workers_tasks.append(asyncio.create_task(process_pool.run_worker(oom_worker_func)))
     ...
 ```
 
@@ -239,3 +237,48 @@ MainProcess      [41.26s] <class 'concurrent.futures.process.BrokenProcessPool'>
 MainProcess      [41.26s] <class 'concurrent.futures.process.BrokenProcessPool'>: A process in the process pool was terminated abruptly while the future was running or pending.
 MainProcess      [41.26s] <class 'concurrent.futures.process.BrokenProcessPool'>: A process in the process pool was terminated abruptly while the future was running or pending.
 ```
+
+## Exception handling & Recovery
+Replace asyncio.gather() with TaskGroup async context manager:
+
+```python
+async def main():
+    ...
+    try:
+        async with asyncio.TaskGroup() as tg:
+            workers_tasks = [tg.create_task(process_pool.run_worker(valid_worker_func)) for _ in range(WORKERS - 1)]
+            workers_tasks.append(tg.create_task(process_pool.run_worker(oom_worker_func)))
+    except Exception as e:
+        print(f"{type(e)}: {e}")
+
+    # await asyncio.gather(*workers_tasks)
+    print("All tasks finished.")
+    ...
+```
+
+```text
+MainProcess      [ 0.00s] Will use 8 workers.
+MainProcess      [ 0.00s] Start new process method: spawn.
+  SpawnProcess-2 [ 0.00s] Hello process! Executing...
+  SpawnProcess-4 [ 0.00s] Hello process! Executing...
+  SpawnProcess-7 [ 0.00s] Hello process! Executing...
+  SpawnProcess-6 [ 0.00s] Hello process! Executing...
+  SpawnProcess-5 [ 0.00s] Hello process! Executing...
+  SpawnProcess-3 [ 0.00s] Hello process! Executing...
+  SpawnProcess-8 [ 0.00s] Hello process! Executing...
+  SpawnProcess-1 [ 0.00s] Hello, Devil!
+MainProcess      [37.43s] <class 'concurrent.futures.process.BrokenProcessPool'>: A process in the process pool was terminated abruptly while the future was running or pending.
+MainProcess      [37.45s] <class 'concurrent.futures.process.BrokenProcessPool'>: A process in the process pool was terminated abruptly while the future was running or pending.
+MainProcess      [37.45s] <class 'ExceptionGroup'>: unhandled errors in a TaskGroup (2 sub-exceptions)
+MainProcess      [37.45s] All tasks finished.
+MainProcess      [37.45s] Task-2 cancelled or failed task.
+MainProcess      [37.45s] Task-3 cancelled or failed task.
+MainProcess      [37.45s] Task-4 cancelled or failed task.
+MainProcess      [37.45s] Task-5 cancelled or failed task.
+MainProcess      [37.45s] Task-6 cancelled or failed task.
+MainProcess      [37.45s] Task-7 cancelled or failed task.
+MainProcess      [37.45s] Task-8 cancelled or failed task.
+MainProcess      [37.45s] Task-9 cancelled or failed task.
+```
+
+
