@@ -55,7 +55,7 @@ print("[Collection]", mem_usage())
 
 ```
 Every sum funciton was executed separately, results:
-```text
+```commandline
 MainProcess      [123.88s] [Generator] Memory usage: 7 MB; peak: 7 MB
 MainProcess      [138.58s] [Lambda] Memory usage: 7 MB; peak: 7 MB
 MainProcess      [144.71s] [Collection] Memory usage: 7 MB; peak: 7726 MB
@@ -81,7 +81,7 @@ if __name__ == "__main__":
     foo([x for x in range(200000, 300000)])
 ```
 
-```text
+```commandline
 MainProcess      [ 0.01s] bar-list elements: 100000 Memory usage: 4 MB; peak: 4 MB
 MainProcess      [ 0.02s] bar-list elements: 200000 Memory usage: 8 MB; peak: 8 MB
 MainProcess      [ 0.02s] bar-list elements: 300000 Memory usage: 12 MB; peak: 12 MB

@@ -134,7 +134,7 @@ async def main():
 
 - Python 3.9.6
 - Darwin Kernel Version 23.4.0
-```text
+```commandline
 MainProcess      [ 0.00s] Will use 8 workers.
 MainProcess      [ 0.00s] Start new process method: spawn.
   SpawnProcess-3 [ 0.00s] Hello process! Executing...
@@ -162,7 +162,7 @@ MainProcess      [ 0.44s] <class 'concurrent.futures.process.BrokenProcessPool'>
 ```
 - Python 3.11.7
 - Darwin Kernel Version 23.4.0
-```text
+```commandline
 MainProcess      [ 0.00s] Will use 8 workers.
 MainProcess      [ 0.00s] Start new process method: spawn.
   SpawnProcess-1 [ 0.00s] Hello process! Executing...
@@ -218,7 +218,7 @@ async def main():
 
 - Python 3.9.6 & 3.11.7
 - Fork & Spawn
-```text
+```commandline
 MainProcess      [ 0.01s] Will use 8 workers.
 MainProcess      [ 0.01s] Start new process method: spawn.
   SpawnProcess-1 [ 0.00s] Hello process! Executing...
@@ -257,7 +257,7 @@ async def main():
     ...
 ```
 
-```text
+```commandline
 MainProcess      [ 0.00s] Will use 8 workers.
 MainProcess      [ 0.00s] Start new process method: spawn.
   SpawnProcess-2 [ 0.00s] Hello process! Executing...

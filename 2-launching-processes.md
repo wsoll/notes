@@ -123,7 +123,7 @@ if __name__ == "__main__":
 ```
 
 ## Fork
-```text
+```commandline
 MainProcess      [ 0.00s] [MODULE SCOPE] List(id: 4395577664) initially: ['Initial value']
 MainProcess      [ 0.00s] Start subprocess with 'fork' method
 MainProcess      [ 0.00s] Updated List(id: 4395577664): ['Initial value', 'Parent process update']
@@ -139,7 +139,7 @@ MainProcess      [ 2.02s] List(id: 4395577664) finally: ['Initial value', 'Paren
 2. Every fork process contains 'Parent process update'.
 
 ## Spawn
-```text
+```commandline
 MainProcess      [ 0.00s] [MODULE SCOPE] List(id: 4362744128) initially: ['Initial value']
 MainProcess      [ 0.00s] Start subprocess with 'spawn' method
 MainProcess      [ 0.00s] Updated List(id: 4362744128): ['Initial value', 'Parent process update']
@@ -202,7 +202,7 @@ if __name__ == "__main__":
 
 ```
 ## Spawn
-```text
+```commandline
 MainProcess - __main__ - Print[MODULE SCOPE]: module scoped reached.
 MainProcess - __main__:   Logger(id: 4390984784): start subprocess with 'spawn' method
 SpawnProcess-2 - __mp_main__ - Print[MODULE SCOPE]: module scoped reached.
@@ -224,7 +224,7 @@ SpawnProcess-2 - __mp_main__:   Logger(id: 4328025936): function executed.
 - Every process has separate logger id
 
 ## Fork
-```text
+```commandline
 MainProcess - __main__ - Print[MODULE SCOPE]: module scoped reached.
 MainProcess - __main__:   Logger(id: 4354415696): start subprocess with 'fork' method
 ForkProcess-1 - __main__:   Logger(id: 4354415696): function executed.
@@ -235,7 +235,7 @@ ForkProcess-2 - __main__:   Logger(id: 4354415696): function executed.
 ### Code modification 1
 Move call_log to separate.py module, initialize own logger on module scope. Result:
 
-```text
+```commandline
 MainProcess - __main__ - Print[MODULE SCOPE]: module scoped reached.
 MainProcess - __main__:   Logger(id: 4360363344): start subprocess with 'fork' method
 ForkProcess-1 - separate:   Logger(id: 4367811088): function executed.
@@ -246,7 +246,7 @@ ForkProcess-2 - separate:   Logger(id: 4367811088): function executed.
 ### Code Modification 2
 Pass init_log function as ProcessPoolExecutor initializer. Result:
 
-```text
+```commandline
 MainProcess - __main__ - Print[MODULE SCOPE]: module scoped reached.
 MainProcess - __main__:   Logger(id: 4325820432): start subprocess with 'fork' method
 ForkProcess-1 - separate:   Logger(id: 4327030224): function executed.
@@ -364,7 +364,7 @@ Let's run the code for both methods increasing number of workers.
 
 ## Spawn
 WORKERS = 1
-```text
+```commandline
 MainProcess      [ 0.00s] Loading data...
 MainProcess      [ 1.62s] Loaded 4577 MB of data.200_000_000 records
 MainProcess      [ 0.00s] Will use 1 workers for 1 batches.
@@ -377,7 +377,7 @@ MainProcess      [ 0.00s] total_time_s=12.69 total_sum=66669134.0
 ```
 
 WORKERS = 4
-```text
+```commandline
 MainProcess      [ 0.00s] Loading data...
 MainProcess      [ 1.54s] Loaded 4577 MB of data.200_000_000 records
 MainProcess      [ 0.00s] Will use 4 workers for 4 batches.
@@ -424,7 +424,7 @@ MainProcess      [ 0.00s] total_time_s=7.11 total_sum=66669134.0
 
 ## Fork
 WORKERS = 1
-```text
+```commandline
 MainProcess      [ 0.00s] Loading data...
 MainProcess      [ 0.96s] Loaded 4577 MB of data.200_000_000 records
 MainProcess      [ 0.00s] Will use 1 workers for 1 batches.
@@ -603,7 +603,7 @@ if __name__ == "__main__":
 
 ```
 
-```text
+```commandline
 MainProcess      [ 0.00s] Loading data...
 MainProcess      [ 1.57s] Loaded 4577 MB of data.200_000_000 records
 MainProcess      [ 0.00s] Will use 8 workers for 8 batches.
@@ -639,7 +639,7 @@ MainProcess      [ 1.63s] Memory usage: 0 MB; peak: 4577 MB
 MainProcess      [ 0.00s] total_time_s=0.98 total_sum=66669134.0
 ```
 
-```text
+```commandline
 MainProcess      [ 0.00s] Loading data...
 MainProcess      [ 1.65s] Loaded 4577 MB of data.200_000_000 records
 MainProcess      [ 0.00s] Will use 8 workers for 8 batches.

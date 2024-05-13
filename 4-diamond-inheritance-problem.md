@@ -35,7 +35,7 @@ if __name__ == "__main__":
     d = D()
 ```
 
-```text
+```commandline
 D
 B
 C
