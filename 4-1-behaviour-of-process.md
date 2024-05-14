@@ -1,15 +1,14 @@
-Table of Content:
-- [Start Process Method](#start-process-method)
-- [Test 1 - Module scope mutable variable](#test-1---module-scope-mutable-variable)
+ - [Start Process Method](#start-process-method)
+- [Module scope mutable variable](#module-scope-mutable-variable)
   * [Fork](#fork)
   * [Spawn](#spawn)
-- [Test 2 - Workers logger](#test-2---workers-logger)
+- [Workers logger](#workers-logger)
   * [Spawn](#spawn-1)
     + [Code modification 1](#code-modification-1)
   * [Fork](#fork-1)
     + [Code modification 1](#code-modification-1-1)
     + [Code Modification 2](#code-modification-2)
-- [Test 3 - Data Sink](#test-3---data-sink)
+- [Data Sink](#data-sink)
   * [Spawn](#spawn-2)
   * [Fork](#fork-2)
   * [Results and Conclusion](#results-and-conclusion)
@@ -55,7 +54,7 @@ May introduce security vulnerabilities if sensitive information is not properly 
 Generally less prone to security vulnerabilities due to separate memory space |
 </td></tr></table>
 
-# Test 1 - Module scope mutable variable
+# Module scope mutable variable
 
 ```python
 import asyncio
@@ -153,7 +152,7 @@ MainProcess      [ 2.11s] List(id: 4362744128) finally: ['Initial value', 'Paren
 2. "[MODULE SCOPE]" log printed three times.
 3. None of spawned process contain 'Parent process update'.
 
-# Test 2 - Workers logger
+# Workers logger
 
 ```python 
 import asyncio
@@ -253,7 +252,7 @@ ForkProcess-2 - separate:   Logger(id: 4327030224): function executed.
 ```
 - Logs duplication for workers. Contains two handlers - first from parent, second for worker initalizer
 
-# Test 3 - Data Sink
+# Data Sink
 Let's generate some data:
 ```python
 import datetime

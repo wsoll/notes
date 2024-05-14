@@ -1,14 +1,11 @@
-- [Processes execption handling and recovering](#processes-execption-handling-and-recovering)
 - [Crash tests](#crash-tests)
   * [Recursion](#recursion)
   * [Out of memory](#out-of-memory)
-  * [Exception handling & Recovery](#exception-handling-and-recovery)
+  * [Exception handling and Recovery](#exception-handling-and-recovery)
 
 <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 
 ---
-
-# Processes execption handling and recovering
 
 ```python
 import asyncio

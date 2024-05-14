@@ -13,7 +13,7 @@ if __name__ == "__main__":
 
 ```
 
-# time.sleep vs asyncio.sleep
+# time.sleep() vs asyncio.sleep()
 ```python
 import asyncio
 import multiprocessing
