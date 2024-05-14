@@ -1,4 +1,23 @@
-# Event loop
+- [Global Interpreter Lock (GIL) and Concurrency](#global-interpreter-lock--gil--and-concurrency)
+- [Asyncio goal](#asyncio-goal)
+  * [time.sleep() vs asyncio.sleep()](#timesleep---vs-asynciosleep--)
+  * [asyncio.run vs loop.run_until_complete](#asynciorun-vs-looprun-until-complete)
+
+<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
+
+
+
+# Global Interpreter Lock (GIL) and Concurrency
+Global interpreter lock causes to use single thread at the time. It means there is one lock per process. The reason to
+apply GIL was to protect the internal state of the interpreted from being corrupted if multiple threads would start
+to change it.
+
+However, making code faster by disabling GIL and applying multiply locks in specific places to speed up the code is not
+that easy task and many times fails, therefore GIL is still present.
+
+# Asyncio goal
+is to maximize the usagew of a single thread by handling I/O asynchronously by enabling concurrency using coroutines:
+
 
 ```python
 import asyncio
@@ -13,7 +32,7 @@ if __name__ == "__main__":
 
 ```
 
-# time.sleep() vs asyncio.sleep()
+## time.sleep() vs asyncio.sleep()
 ```python
 import asyncio
 import multiprocessing
@@ -81,7 +100,7 @@ MainProcess      [45.05s] Done.
 ```
 
 1. time.sleep() is a synchronous function that blocks event loop. As a result every call is sequential.
-2. The loop should be stopped within 15 seconds, however the event loop is blocked for the sleep time.
+2. The loop should be stopped within 15 seconds (call later -> loop.stop), however the event loop is blocked for the sleep time.
 
 To resolve the issue dedicated asynchronous sleep method that respects event loop has to be applied:
 
@@ -96,11 +115,12 @@ from rich.console import Console
 async def sleeping_func(i):
     print("Hello, sleeping_func!")
     await asyncio.sleep(i)
+    print("Done.")
 
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
-    loop.call_later(10, loop.stop)
+    loop.call_later(15, loop.stop)
     for i in range(1, 10):
         loop.create_task(sleeping_func(i))
 
@@ -134,3 +154,34 @@ MainProcess      [ 9.00s] Done.
 
 - dedicated asyncio.sleep() should be used with 'await' keyword
 - 'await' keyword can be used in coroutine (asynchronous function -> async def foo(): ...)
+
+## asyncio.run vs loop.run_until_complete
+To simply run some asynchronous code you could use:
+```python
+import asyncio
+
+async def foo():
+    ...
+
+
+asyncio.run(foo())
+```
+
+However, if you need finer control over the event loop such as embedding it in a large app, running multiple coroutines 
+and have control over it:
+
+
+```python
+import asyncio
+
+async def main():
+    ...
+
+if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
+    try:
+        loop.run_until_complete(main())
+    finally:
+        loop.close()
+
+```
