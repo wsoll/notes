@@ -1,3 +1,5 @@
+https://wsoll.github.io/articles
+
 # Python
 1. [Lazy loading and collection generation peak](1-lazy-loading-and-collection-generation-peak.md)
 2. [Diamond inheritance problem](2-diamond-inheritance-problem.md)
