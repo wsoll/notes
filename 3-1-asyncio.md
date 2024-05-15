@@ -1,8 +1,8 @@
 - [Global Interpreter Lock (GIL) and Concurrency](#global-interpreter-lock--gil--and-concurrency)
 - [Asyncio goal](#asyncio-goal)
-  * [time.sleep() vs asyncio.sleep()](#timesleep---vs-asynciosleep--)
-  * [asyncio.run vs loop.run_until_complete](#asynciorun-vs-looprun-until-complete)
-- [task, gather, wait](#task--gather--wait)
+  * [time.sleep vs asyncio.sleep](#timesleep---vs-asynciosleep--)
+  * [asyncio.run vs loop.run_until_complete](#asynciorun-vs-looprun_until_complete)
+  * [task, gather, wait](#task--gather--wait)
 
 <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 
@@ -187,7 +187,7 @@ if __name__ == "__main__":
 ```
 
 
-# task, gather, wait
+## task, gather, wait
 Awaiting on a coroutine actually doesn't schedule it for concurrent execution. To do so, you have to create a task:
 
 ```python
