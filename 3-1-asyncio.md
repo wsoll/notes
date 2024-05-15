@@ -2,9 +2,9 @@
 - [Asyncio goal](#asyncio-goal)
   * [time.sleep() vs asyncio.sleep()](#timesleep---vs-asynciosleep--)
   * [asyncio.run vs loop.run_until_complete](#asynciorun-vs-looprun-until-complete)
+- [task, gather, wait](#task--gather--wait)
 
 <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
-
 
 
 # Global Interpreter Lock (GIL) and Concurrency
@@ -184,4 +184,150 @@ if __name__ == "__main__":
     finally:
         loop.close()
 
+```
+
+
+# task, gather, wait
+Awaiting on a coroutine actually doesn't schedule it for concurrent execution. To do so, you have to create a task:
+
+```python
+import asyncio
+import multiprocessing
+import time
+from rich.console import Console
+
+console = Console(width=500)
+print_ts = time.time()
+
+
+def print(*args, **kwargs) -> None:
+    global print_ts
+    now = time.time()
+    proc = multiprocessing.current_process().name
+    if proc == "MainProcess":
+        proc = f"[bold]{proc:<16}[/bold]"
+    else:
+        proc = f"{proc:>16}"
+    console.print(
+        f"{proc} [[green bold]{now - print_ts:>5.2f}s[/]]",
+        *args,
+        **kwargs
+    )
+
+
+async def nested_coroutine(i):
+    print("Hello, nested coroutine!")
+    await asyncio.sleep(i)
+    print("nested coroutine is finished.")
+    return i
+
+
+async def sleeping_func(i):
+    print("Hello, sleeping_func!")
+    result = await nested_coroutine(i)
+    print("sleeping_func is finished.")
+    return result
+
+
+async def main():
+    task_worker = asyncio.create_task(sleeping_func(1))
+    # Some concurrent code
+    await task_worker
+    print(task_worker.result())
+
+
+if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
+    try:
+        loop.run_until_complete(main())
+    finally:
+        loop.close()
+
+```
+```commandline
+MainProcess      [ 0.00s] Hello, sleeping_func!
+MainProcess      [ 0.00s] Hello, nested coroutine!
+MainProcess      [ 1.00s] nested coroutine is finished.
+MainProcess      [ 1.01s] sleeping_func is finished.
+MainProcess      [ 1.01s] 1
+```
+
+
+You could 'gather' tasks if you require running multiple asynchronous tasks and to collect their result in a single 
+future:
+```python
+...
+
+async def main():
+    tasks_workers = [asyncio.create_task(sleeping_func(i)) for i in range(4)]
+    # Some concurrent code
+    await asyncio.gather(*tasks_workers)
+    for task_worker in tasks_workers:
+        print(task_worker.result())
+
+...
+
+```
+```commandline
+MainProcess      [ 0.00s] Hello, sleeping_func!
+MainProcess      [ 0.00s] Hello, nested coroutine!
+MainProcess      [ 0.00s] Hello, sleeping_func!
+MainProcess      [ 0.00s] Hello, nested coroutine!
+MainProcess      [ 0.00s] Hello, sleeping_func!
+MainProcess      [ 0.00s] Hello, nested coroutine!
+MainProcess      [ 0.00s] Hello, sleeping_func!
+MainProcess      [ 0.00s] Hello, nested coroutine!
+MainProcess      [ 0.00s] nested coroutine is finished.
+MainProcess      [ 0.00s] sleeping_func is finished.
+MainProcess      [ 1.00s] nested coroutine is finished.
+MainProcess      [ 1.01s] sleeping_func is finished.
+MainProcess      [ 2.00s] nested coroutine is finished.
+MainProcess      [ 2.01s] sleeping_func is finished.
+MainProcess      [ 3.00s] nested coroutine is finished.
+MainProcess      [ 3.01s] sleeping_func is finished.
+MainProcess      [ 3.01s] 0
+MainProcess      [ 3.01s] 1
+MainProcess      [ 3.01s] 2
+MainProcess      [ 3.01s] 3
+```
+
+
+In case of control over the awaiting behaviour you could use wait method for timeouts or different completion 
+conditions:
+```python
+...
+
+async def main():
+    tasks_workers = [asyncio.create_task(sleeping_func(i)) for i in range(4)]
+    # Some concurrent code
+
+    done, pending = await asyncio.wait(tasks_workers, timeout=2)
+
+    for task in done:
+        print(f"{task.get_name()} is finished. Result: {task.result()}")
+
+    for task in pending:
+        print(f"{task.get_name()} is still pending...Cancelling...")
+        task.cancel()
+...
+
+```
+
+```commandline
+MainProcess      [ 0.00s] Hello, sleeping_func!
+MainProcess      [ 0.00s] Hello, nested coroutine!
+MainProcess      [ 0.00s] Hello, sleeping_func!
+MainProcess      [ 0.00s] Hello, nested coroutine!
+MainProcess      [ 0.00s] Hello, sleeping_func!
+MainProcess      [ 0.00s] Hello, nested coroutine!
+MainProcess      [ 0.00s] Hello, sleeping_func!
+MainProcess      [ 0.00s] Hello, nested coroutine!
+MainProcess      [ 0.00s] nested coroutine is finished.
+MainProcess      [ 0.00s] sleeping_func is finished.
+MainProcess      [ 1.00s] nested coroutine is finished.
+MainProcess      [ 1.01s] sleeping_func is finished.
+MainProcess      [ 2.00s] Task-3 is finished. Result: 1
+MainProcess      [ 2.00s] Task-2 is finished. Result: 0
+MainProcess      [ 2.01s] Task-5 is still pending...Cancelling...
+MainProcess      [ 2.01s] Task-4 is still pending...Cancelling...
 ```
