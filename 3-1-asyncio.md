@@ -3,6 +3,7 @@
   * [time.sleep vs asyncio.sleep](#timesleep-vs-asynciosleep)
   * [asyncio.run vs loop.run_until_complete](#asynciorun-vs-looprun_until_complete)
   * [task, gather, wait](#task-gather-wait)
+  * [lock, queue](#lock-queue)
 
 
 # Global Interpreter Lock (GIL) and Concurrency
@@ -328,4 +329,118 @@ MainProcess      [ 2.00s] Task-3 is finished. Result: 1
 MainProcess      [ 2.00s] Task-2 is finished. Result: 0
 MainProcess      [ 2.01s] Task-5 is still pending...Cancelling...
 MainProcess      [ 2.01s] Task-4 is still pending...Cancelling...
+```
+
+## lock, queue
+
+If you need to control access to a shared resources like: lists, dicts, or any mutable objects, file or network 
+connection, a lock can ensure that only one coroutine uses the resource at any given time, preventing conflicts or
+corruption:
+
+```python
+...
+
+async def my_worker(lock):
+    print("Attempting to attain lock")
+
+    async with lock:
+        print("Currently locked")
+        await asyncio.sleep(2)
+
+    print("Unlocked from critical section")
+
+
+async def main():
+    lock = asyncio.Lock()
+    tasks = [asyncio.create_task(my_worker(lock)) for i in range(2)]
+
+    await asyncio.wait(tasks)
+
+
+if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
+    print("All workers completed.")
+    loop.close()
+
+```
+
+```commandline
+MainProcess      [ 0.00s] Attempting to attain lock
+MainProcess      [ 0.00s] Currently locked
+MainProcess      [ 0.00s] Attempting to attain lock
+MainProcess      [ 0.00s] Currently locked
+MainProcess      [ 2.00s] Unlocked from critical section
+MainProcess      [ 2.01s] Unlocked from critical section
+MainProcess      [ 2.01s] All workers completed.
+```
+
+Do not use the lock in case of non-shared resources, read-only access (not needed) or high-performance scenario (slows
+it down).
+
+To coordinate work between coroutines like producer & consumer scenario a non-thread safe but native for asyncio queue 
+is recommended to use:
+
+```python
+...
+
+async def producer(my_queue: asyncio.Queue):
+  while True:
+    await asyncio.sleep(1)
+    print("Putting new item onto queue.")
+    await my_queue.put(random.randint(1, 5))
+
+
+async def consumer(id: int, my_queue: asyncio.Queue):
+  while True:
+    print(f"Consumer: {id} attempting to get from queue.")
+    item = await my_queue.get()
+    print(f"Consumer: {id} consumed item with id: {item}")
+
+
+async def main():
+  queue = asyncio.Queue(maxsize=10)
+  producers = [asyncio.create_task(producer(queue)) for _ in range(2)]
+  consumers = [asyncio.create_task(consumer(i, queue)) for i in range (1,3)]
+  tasks = producers + consumers
+  await asyncio.wait(tasks, timeout=5)
+
+  for task in tasks:
+    task.cancel()
+
+if __name__ == "__main__":
+  loop = asyncio.get_event_loop()
+  loop.run_until_complete(main())
+  loop.close()
+
+
+```
+
+```commandline
+MainProcess      [ 0.00s] Consumer: 1 attempting to item get from queue. Waiting...
+MainProcess      [ 0.00s] Consumer: 2 attempting to item get from queue. Waiting...
+MainProcess      [ 1.00s] Putting new item onto queue.
+MainProcess      [ 1.00s] Putting new item onto queue.
+MainProcess      [ 1.00s] Consumer: 1 consumed item with id: 3
+MainProcess      [ 1.01s] Consumer: 1 attempting to item get from queue. Waiting...
+MainProcess      [ 1.01s] Consumer: 1 consumed item with id: 2
+MainProcess      [ 1.01s] Consumer: 1 attempting to item get from queue. Waiting...
+MainProcess      [ 2.00s] Putting new item onto queue.
+MainProcess      [ 2.01s] Putting new item onto queue.
+MainProcess      [ 2.01s] Consumer: 1 consumed item with id: 5
+MainProcess      [ 2.01s] Consumer: 1 attempting to item get from queue. Waiting...
+MainProcess      [ 2.01s] Consumer: 1 consumed item with id: 5
+MainProcess      [ 2.01s] Consumer: 1 attempting to item get from queue. Waiting...
+MainProcess      [ 3.01s] Putting new item onto queue.
+MainProcess      [ 3.01s] Putting new item onto queue.
+MainProcess      [ 3.01s] Consumer: 1 consumed item with id: 5
+MainProcess      [ 3.01s] Consumer: 1 attempting to item get from queue. Waiting...
+MainProcess      [ 3.01s] Consumer: 1 consumed item with id: 1
+MainProcess      [ 3.01s] Consumer: 1 attempting to item get from queue. Waiting...
+MainProcess      [ 4.01s] Putting new item onto queue.
+MainProcess      [ 4.01s] Consumer: 1 consumed item with id: 1
+MainProcess      [ 4.01s] Consumer: 1 attempting to item get from queue. Waiting...
+MainProcess      [ 4.01s] Putting new item onto queue.
+MainProcess      [ 4.02s] Consumer: 2 consumed item with id: 2
+MainProcess      [ 4.02s] Consumer: 2 attempting to item get from queue. Waiting...
 ```
