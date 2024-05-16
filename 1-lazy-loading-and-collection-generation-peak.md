@@ -79,3 +79,36 @@ MainProcess      [ 0.01s] bar-list elements: 100000 Memory usage: 4 MB; peak: 4 
 MainProcess      [ 0.02s] bar-list elements: 200000 Memory usage: 8 MB; peak: 8 MB
 MainProcess      [ 0.02s] bar-list elements: 300000 Memory usage: 12 MB; peak: 12 MB
 ```
+
+## File Reader Generator
+```python
+...
+
+with open("foo.txt", "r") as file:
+    lines = file.readlines()
+    for line in lines:
+        print(mem_usage(), line.strip())
+```
+
+```commandline
+MainProcess      [ 0.04s] Memory usage: 34 MB; peak: 34 MB Lorem ipsum dolor sit amet, consectetur adipiscing elit...
+```
+
+Let's compare it with file reader generator:
+
+```python
+...
+
+def yield_lines(file_path):
+    with open(file_path, 'r') as file:
+        for line in file:
+            yield line.strip()
+
+            
+for line in yield_lines('foo.txt'):
+    print(mem_usage(), line)
+```
+
+```commandline
+MainProcess      [ 0.00s] Memory usage: 0 MB; peak: 0 MB LLLorem ipsum dolor sit amet, consectetur adipiscing elit...
+```
