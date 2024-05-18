@@ -110,5 +110,5 @@ for line in yield_lines('foo.txt'):
 ```
 
 ```commandline
-MainProcess      [ 0.00s] Memory usage: 0 MB; peak: 0 MB LLLorem ipsum dolor sit amet, consectetur adipiscing elit...
+MainProcess      [ 0.00s] Memory usage: 0 MB; peak: 0 MB Lorem ipsum dolor sit amet, consectetur adipiscing elit...
 ```
