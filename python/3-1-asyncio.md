@@ -5,6 +5,7 @@
   * [task, gather, wait](#task-gather-wait)
   * [lock, queue](#lock-queue)
 
+<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 
 # Global Interpreter Lock (GIL) and Concurrency
 Global interpreter lock causes to use single thread at the time. It means there is one lock per process. The reason to
