@@ -1,3 +1,11 @@
+- [Memory tracing](#memory-tracing)
+  * [Generator, lambda, collection](#generator--lambda--collection)
+  * [Mutable as a default argument](#mutable-as-a-default-argument)
+  * [File Reader Generator](#file-reader-generator)
+
+<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
+
+
 # Memory tracing
 ```python
 import multiprocessing
