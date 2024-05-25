@@ -1,5 +1,3 @@
-https://wsoll.github.io/articles
-
 # Computer Science
 1. [Time and space complexity](computer-science/time-and-space-complexity.md)
 
