@@ -1,3 +1,7 @@
+# Inheritance
+...
+
+## Diamon Inheritance Problem
 Programming languages that allow only single inheritance don't have the problem. Anyway Python allows multiple inheritance...:
 
 ```python
@@ -37,3 +41,6 @@ A
 
 1. It is recommended to use super() builtin to do not encounter the issue or duplicate initialization (for initializing parents manually).
 2. Order of inheritance for subclass defines initialization order. 
+
+
+# Metaclasses

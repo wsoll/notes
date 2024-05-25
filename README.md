@@ -4,8 +4,11 @@ https://wsoll.github.io/articles
 1. [Time and space complexity](computer-science/time-and-space-complexity.md)
 
 # Python
-1. [Lazy loading and collection generation peak](python/1-lazy-loading-and-collection-generation-peak.md)
-2. [Diamond inheritance problem](python/2-diamond-inheritance-problem.md)
+1. Programming paradigms
+   1. Procedural
+   2. [Object Oriented](python/1-2-object-oriented-programming.md)
+   3. Functional
+2. [Lazy loading and collection generation peak](python/2-lazy-loading-and-collection-generation-peak.md)
 3. Concurrency
     1. [Asyncio](python/3-1-asyncio.md)
 4. Process-based parallelism
