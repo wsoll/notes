@@ -1,5 +1,6 @@
 # Computer Science
-1. [Time and space complexity](computer-science/time-and-space-complexity.md)
+1. [Data Structures](computer-science/1-data-structures.md)
+2. [Time and space complexity](computer-science/2-time-and-space-complexity.md)
 
 # Python
 1. Programming paradigms
