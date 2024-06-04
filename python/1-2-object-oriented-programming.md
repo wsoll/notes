@@ -1,14 +1,73 @@
+- [Relationships Introduction](#relationships-introduction)
+  * [Types](#types)
+    + [Association](#association)
+    + [Composition](#composition)
+    + [Aggregation](#aggregation)
+  * [Cardinalities](#cardinalities)
+  * [Directionality](#directionality)
 - [Inheritance](#inheritance)
   * [Diamon Inheritance Problem](#diamon-inheritance-problem)
-- [Metaclasses](#metaclasses)
-  * [Auto class registration](#auto-class-registration)
-  * [Enforcing class implementation / pattern](#enforcing-class-implementation---pattern)
+  * [Metaclasses](#metaclasses)
+    + [Auto class registration](#auto-class-registration)
+    + [Enforcing class implementation / pattern](#enforcing-class-implementation---pattern)
 
 <small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 
 
-# Inheritance
+# Relationships Introduction
+
+## Types
+### Association
 ...
+
+### Composition
+Strong form of **association** where the composed objects cannot exist independently of the parent object.
+```Python
+class Engine:
+    pass
+
+class Transmission:
+    pass
+
+class Wheel:
+    pass
+
+class Car:
+    def __init__(self):
+        self.engine = Engine()
+        self.transmission = Transmission()
+        self.wheels = [Wheel() for _ in range(4)]
+
+```
+
+### Aggregation
+Weak form of **association** where objects can exist independently of the parent object.
+```Python
+class Player:
+    pass
+
+class Team:
+    def __init__(self):
+        self.players = []
+
+    def add_player(self, player):
+        self.players.append(player)
+
+player1 = Player()
+player2 = Player()
+
+team = Team()
+team.add_player(player1)
+team.add_player(player2)
+
+```
+
+## Cardinalities
+...
+## Directionality
+...
+
+# Inheritance
 
 ## Diamon Inheritance Problem
 Programming languages that allow only single inheritance don't have the problem. Anyway Python allows multiple inheritance...:
@@ -52,7 +111,7 @@ A
 2. Order of inheritance for subclass defines initialization order. 
 
 
-# Metaclasses
+## Metaclasses
 
 Just like class is objects factory, a metaclass is classes factory. In Python everything
 is an object (there is not actual 'primitive' types) and its actual implementation 
@@ -64,7 +123,7 @@ Use cases e.g.:
 1. Auto class registration.
 2. Enforcing classes implementations.
 
-## Auto class registration
+### Auto class registration
 
 ```Python
 class PluginRegistry(type):
@@ -105,7 +164,7 @@ for plugin in registered_plugins:
 
 ```
 
-## Enforcing class implementation / pattern
+### Enforcing class implementation / pattern
 
 ```python
 class EndpointRegistrationMeta(type):
