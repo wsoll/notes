@@ -125,7 +125,7 @@ Use cases e.g.:
 
 ### Auto class registration
 
-```Python
+```python
 class PluginRegistry(type):
     def __new__(cls, name, bases, dct):
         new_class = super().__new__(cls, name, bases, dct)
