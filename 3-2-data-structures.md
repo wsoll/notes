@@ -1,3 +1,95 @@
+# Singly-linked list & good taste :)
+*based on ["sense of taste" by Linus Torvalds :)](https://youtu.be/o8NPllzkFhE?feature=shared&t=863)
+## Ok
+Let's remove C entry...
+```c
+remove_list_entry(entry)
+{
+    prev = NULL;
+    walk = head;
+    
+    //Walk the list
+    
+    while (walk != entry) {
+        prev = walk;
+        walk = walk->next;
+    }
+    
+    // Remove the entry by updating the
+    // head or the previous entry
+    
+    if (!prev)
+        head = entry->next;
+    else
+        prev->next = entry->next;
+      
+}
+```
+```text
+head -> [A] -> [B] -> [C] -> [D] -> NULL
+       ^
+      prev
+       ^
+      walk
+```
+```text
+head -> [A] -> [B] -> [C] -> [D] -> NULL
+           ^
+          prev
+           ^
+          walk
+```
+```text
+head -> [A] -> [B] -> [C] -> [D] -> NULL
+                 ^
+                prev
+                 ^
+                walk
+```
+```text
+head -> [A] -> [B] -> [D] -> NULL
+```
+
+## Better
+```c
+remove_list_entry(entry)
+{
+    // The "indirect" pointer points to the
+    // *address* of the thing we'll update
+    
+    indirect = &head
+    
+    // Walk the list, looking for the thing that
+    // points to the entry we want to remove
+    
+    while ((*indirect) != entry)
+        indirect = &(*indirect)->next;
+       
+    // .. and just remove it
+    *indirect = entry->next;
+}
+```
+```text
+head -> [A] -> [B] -> [C] -> [D] -> NULL
+       ^
+      indirect
+```
+```text
+head -> [A] -> [B] -> [C] -> [D] -> NULL
+              ^
+             indirect
+```
+```text
+head -> [A] -> [B] -> [C] -> [D] -> NULL
+                    ^
+                   indirect
+```
+```text
+head -> [A] -> [B] -> [D] -> NULL
+```
+
+
+
 # Circular/Ring Buffer
 ```c
 
