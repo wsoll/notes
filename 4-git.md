@@ -1,14 +1,38 @@
 # Cheat sheet
 ```bash
-git reset --soft HEAD~1
-git remote -v
-git branch -a
 git log -n 5
+
 git push --force-with-lease
+git reset --soft HEAD~1
+
+git branch -a
+git remote -v
+git remote add <tracking-ref-name> <*.git>
+git pull <tracking-ref-name> <branch>
 ```
 
 # Commits
 - https://www.conventionalcommits.org/en/v1.0.0/
+
+## Blame
+Metadata changes
+- Renames
+- Moves
+- File Permissions
+- File Creation
+- File Deletion
+
+Actual Content Changes:
+- Insertions
+- Deletions
+- Modifications
+- Binary file changes
+
+### Notes
+- Rename or move files in a single commit without making other changes to the file for 
+clarity and to preserve original line authors
+- In case of moving part of a code from a file to entirely new file you are going to 
+overwrite the original author.
 
 # Merge strategies
 
